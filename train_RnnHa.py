@@ -18,7 +18,7 @@ parser=argparse.ArgumentParser(description='fintune Training')
 parser.add_argument('--training_data',default='./VeRi', help='Training dataset directory')
 parser.add_argument('--txt_path',default='./train_label.txt', help='the list of imgs and its label')
 parser.add_argument('-b', '--batch_size', default=64, type=int, help='Batch size for training')
-parser.add_argument('--num_workers', default=4, type=int, help='Number of workers used in dataloading')
+parser.add_argument('--num_workers', default=1, type=int, help='Number of workers used in dataloading')
 parser.add_argument('--start-epoch', default=0, type=int, metavar='N',
                     help='manual epoch number (useful on restarts)')
 parser.add_argument('--cuda', default=True, type=bool, help='Use cuda to train model')
@@ -28,7 +28,7 @@ parser.add_argument('--res_resume', default='', type=str, metavar='PATH',help='r
 parser.add_argument('--lr', '--learning-rate', default=1e-3, type=float, help='initial learning rate')
 parser.add_argument('--resume', default='', type=str, metavar='PATH',help='resume net for retraining')
 parser.add_argument('--resume_epoch', default=0, type=int, help='resume iter for retraining')
-parser.add_argument('-max', '--epoches', default=50, type=int, help='max epoch for retraining')
+parser.add_argument('-max', '--epoches', default=60, type=int, help='max epoch for retraining')
 parser.add_argument('--save_folder', default='./models/', help='Location to save checkpoint models')
 
 args = parser.parse_args()
@@ -36,7 +36,7 @@ args = parser.parse_args()
 if not os.path.exists(args.save_folder):
     os.mkdir(args.save_folder)
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 rgb_means=[0.428,0.427,0.429]
 rgb_std=[0.216,0.214,0.216]
 normalizer = transforms.Normalize(mean=rgb_means,
@@ -89,9 +89,10 @@ def train(args,model,optimizer):
         num_workers=args.num_workers, pin_memory=True)
 
     model.train()
+    batch_sum=1
     for epoch in range(1,epoches+1):
-        if epoch == 20:
-            optimizer = optim.RMSprop(filter(lambda  p: p.requires_grad, model.parameters()), lr=args.lr/10)
+        if epoch%20==0:
+            optimizer = optim.RMSprop(filter(lambda  p: p.requires_grad, model.parameters()), lr=args.lr/10**(epoch/20))
         
         train_batch=1
         for sample in train_loader:
@@ -99,10 +100,12 @@ def train(args,model,optimizer):
             img,model_label,veh_label=sample
             if args.cuda:
                 img = Variable(img.cuda())
-                model_label = Variable(model_label.cuda(async=True))
-                veh_label = Variable(veh_label.cuda(async=True))
+                h0=Variable(h0.cuda())
+                model_label = Variable(model_label.cuda())
+                veh_label = Variable(veh_label.cuda())
             else:
                 img = Variable(img)
+                h0=Variable(h0)
                 model_label = Variable(model_label)
                 veh_label = Variable(veh_label)
             output_model, output_veh = model(img, h0)
@@ -110,30 +113,29 @@ def train(args,model,optimizer):
             loss_model = F.nll_loss(output_model, model_label)
             loss_veh = F.nll_loss(output_veh, veh_label)
             pred_model = output_model.data.max(1)[1]  # get the index of the max log-probability
-            correct_model += pred_model.eq(model_label.data).cpu().sum()/batch_size
+            correct_model += pred_model.eq(model_label.data).cpu().sum().float()/batch_size
             pred_veh = output_veh.data.max(1)[1]  # get the index of the max log-probability
-            correct_veh += pred_veh.eq(veh_label.data).cpu().sum() / batch_size
+            correct_veh += pred_veh.eq(veh_label.data).cpu().sum().float() / batch_size
             
             loss = loss_model + loss_veh
             loss.backward()
             optimizer.step()
             train_loss += loss.item()/batch_size
-           
             print('batch: [{0}/{1}]\t'
-                  'loss: {:.4f} '
-                  'model:{:.4f}'
-                  'vechicle:{:.4f}'
-                  .format(train_batch,epoch,train_loss/train_batch,correct_model/train_batch,correct_veh/train_batch))
+                  'loss: {2:.4f} '
+                  'model:{3:.3f} '
+                  'vechicle:{4:.3f}'
+                  .format(train_batch,epoch,train_loss/batch_sum,correct_model/batch_sum,correct_veh/batch_sum))
             train_batch+=1
+            batch_sum+=1
         if not os.path.exists('./log'):
             os.mkdir('./log')
         log = open('./log/train.txt', 'a+')
-        log.write("The " + str(epoch) + "-th epoch: model accuracy is " + str(100. * correct_model/train_batch) + ", veh accuracy is " + str(100. * correct_veh/train_batch) +"\n")
-        if epoch % 5 == 0:
-            saveName = args.save_folder+'model_epoch_' + str(epoch)
+        log.write("The " + str(epoch) + "-th epoch: model accuracy is " + str(100. * correct_model/batch_sum) + ", veh accuracy is " + str(100. * correct_veh/batch_sum) +"\n")
+        if epoch % 20 == 0:
+            saveName = args.save_folder+'model_epoch_' + str(epoch)+'.pth'
             torch.save(model.state_dict(), saveName)
 
 
 if __name__=='__main__':
     train(args,model,optimizer)
-

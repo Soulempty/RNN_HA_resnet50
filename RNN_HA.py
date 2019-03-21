@@ -31,26 +31,25 @@ class RNN_HA(nn.Module):
         self.word_embedding_dim=model.fc.in_features
         self.rnn = nn.GRU(self.word_embedding_dim, hidden_dim, num_layers, bidirectional=False)
         self.W1 = nn.Linear(hidden_dim, num_model_cls)
-        init.kaiming_normal(self.W1.weight)
+        init.kaiming_normal_(self.W1.weight)
         self.W2 = nn.Linear(hidden_dim, num_vehicle_cls)
-        init.kaiming_normal(self.W2.weight)
+        init.kaiming_normal_(self.W2.weight)
         self.W3 = nn.Linear(hidden_dim, hidden_dim)
-        init.kaiming_normal(self.W3.weight)
+        init.kaiming_normal_(self.W3.weight)
         self.W4 = nn.Linear(hidden_dim,self.word_embedding_dim)
         self.activation = nn.ReLU()
-        init.kaiming_normal(self.W4.weight)
+        init.kaiming_normal_(self.W4.weight)
     def forward(self, im_feat, h0):
         for name, module in self.resnet._modules.items():
             if name == 'avgpool':
                 break
             im_feat = module(im_feat)
-        print('.......img_vec size:',im_feat.size())
         first_im_feat = self.first_gap(im_feat)
         first_im_feat = first_im_feat.view(-1,self.word_embedding_dim)#batchx2048
         first_im_feat = torch.unsqueeze(first_im_feat,0)##1xbatchx2048
         first_im_feat = torch.cat((first_im_feat,first_im_feat),0)#2xbatchx2048
         output, hn = self.rnn(first_im_feat, h0)
-        o_model = output[0, :, :]#output:2xbatchx1024
+        o_model = output[1, :, :]#output:2xbatchx1024
 
         o_model_input = self.W3(o_model)
         o_model_input = self.relu(o_model_input)
@@ -74,13 +73,3 @@ class RNN_HA(nn.Module):
         pred_model = self.W1(o_model)
         pred_vin = self.W2(o_vin)
         return F.log_softmax(pred_model,dim=1), F.log_softmax(pred_vin,dim=1)
-
-
-
-
-
-
-
-
-
-

@@ -72,4 +72,4 @@ class RNN_HA(nn.Module):
 
         pred_model = self.W1(o_model)
         pred_vin = self.W2(o_vin)
-        return F.log_softmax(pred_model,dim=1), F.log_softmax(pred_vin,dim=1)
+        return F.log_softmax(pred_model,dim=1), F.log_softmax(pred_vin,dim=1),o_vin

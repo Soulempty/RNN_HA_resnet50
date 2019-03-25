@@ -81,8 +81,8 @@ def pairwise_distance(query_features, gallery_features, query=None, gallery=None
     else:
         x = x.view(m, -1)
         y = y.view(n, -1)
-        x_norm=torch.norm(x,2,1).expand_as(x)
-        y_norm=torch.norm(y,2,1).expand_as(y)
+        x_norm=torch.norm(x,2,1,True).expand_as(x)
+        y_norm=torch.norm(y,2,1,True).expand_as(y)
         x_n=x.div(x_norm)
         y_n=y.div(y_norm)
         dist=x_n.mm(y_n.t())#m*n (-1,1)

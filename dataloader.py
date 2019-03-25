@@ -14,7 +14,7 @@ from torch.utils.data import Dataset
 
 class MyTransform(Dataset):
     def __init__(self,data_path,augmentations=None,rgb_mean=(128,128,128)): 
-        
+        super(MyTransform,self).__init__()
         self.mean = np.array(rgb_mean)
         self.augmentations=augmentations
         self.images = []
@@ -37,8 +37,49 @@ class MyTransform(Dataset):
         img=Image.open(img)
         if self.augmentations is not None:
             img = self.augmentations(img)
+    
+class VeRiTransform(Dataset):
+    def __init__(self,data,augmentations=None): 
+        super(VeRiTransform,self).__init__()
+        self.augmentations=augmentations
+        self.data=data
+
+    def __len__(self):
+        return len(self.data)  
+    def __getitem__(self, i):
+        # do something to both images and labels
+        img, label,cam = self.data[i]
+        fname=os.path.basename(img)
+        img=Image.open(img).convert('RGB')
+        if self.augmentations is not None:
+            img = self.augmentations(img)
+        return img,fname ,label,cam
+    
+class VeRi(Dataset):
+    def __init__(self,root): 
+        self.root_path=root #the directory where test,train,gallery loacate. 
+        self.query_path='image_query'
+        self.gallery_path='image_test'
+        self.query=[]
+        self.gallery=[]
+        self.load()
+ 
+    def process(self,path):
+        images = []
+        files=sorted(glob.glob(os.path.join(self.root_path,path,'*.jpg')))     
+        l_len=len(files)
+        
+        for f in files:
+            img_name=os.path.basename(f)
+            label=int(img_name.split("_")[0])
+            cam=int(img_name.split("_")[-1].split('.')[0])
+            images.append((f,label,cam))
             
-        return img, label
+        return images,l_len
+    def load(self):
+        self.query,_=self.process(self.query_path)
+        self.gallery,_=self.process(self.gallery_path)
+        
 class MydataLoader(Dataset):
     def __init__(self,data_path,txt_path,augmentations=None,rgb_mean=(128,128,128)): 
         
@@ -73,6 +114,5 @@ class MydataLoader(Dataset):
         model_label = model_label
 
         return img, model_label,veh_label    
-
 
 

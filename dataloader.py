@@ -72,7 +72,7 @@ class VeRi(Dataset):
         for f in files:
             img_name=os.path.basename(f)
             label=int(img_name.split("_")[0])
-            cam=int(img_name.split("_")[-1].split('.')[0])
+            cam=int(img_name.split("_")[1][1:])
             images.append((f,label,cam))
             
         return images,l_len

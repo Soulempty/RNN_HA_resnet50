@@ -78,6 +78,15 @@ def pairwise_distance(query_features, gallery_features, query=None, gallery=None
         dist = torch.pow(x, 2).sum(1).unsqueeze(1).expand(m, n) + \
            torch.pow(y, 2).sum(1).unsqueeze(1).expand(n, m).t()
         dist.addmm_(1, -2, x, y.t())#(x1-y1)**2+(x2-y2)**2==x1**2+x2**2+y1**2+y2**2-2*(x1*y1+x2*y2)
+    else:
+        x = x.view(m, -1)
+        y = y.view(n, -1)
+        x_norm=torch.norm(x,2,1).expand_as(x)
+        y_norm=torch.norm(y,2,1).expand_as(y)
+        x_n=x.div(x_norm)
+        y_n=y.div(y_norm)
+        dist=x_n.mm(y_n.t())#m*n (-1,1)
+        dist=0.5+dist*0.5
     return dist
 
 

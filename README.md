@@ -14,7 +14,7 @@ Train: python train_rnnHa.py --training_data  /home/*/VeRi/image_train --txt_pat
 Evaluate(MAP,CMC): python evaluate.py --data_path /home/*/VeRi --resume ./models/model_epoch_40.pth
 
 MAP: 63.1%    
-CMC Scores    allshots      cuhk03  market1501
+CMC Scores      allshots     cuhk03  market1501
 
   top-1          32.1%       61.8%       89.7%
   

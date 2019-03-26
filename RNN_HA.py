@@ -69,7 +69,9 @@ class RNN_HA(nn.Module):
         second_im_feat = second_im_feat.view(-1,self.word_embedding_dim).unsqueeze(0)
         output, hn = self.rnn(second_im_feat, hn)
         o_vin = output[0, :, :]
+        
+        out_vin = o_vin /o_vin.norm(2,1).unsqueeze(1).expand_as(o_vin)
 
         pred_model = self.W1(o_model)
         pred_vin = self.W2(o_vin)
-        return F.log_softmax(pred_model,dim=1), F.log_softmax(pred_vin,dim=1),o_vin
+        return F.log_softmax(pred_model,dim=1), F.log_softmax(pred_vin,dim=1),out_vin

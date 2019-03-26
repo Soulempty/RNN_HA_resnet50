@@ -26,10 +26,10 @@ parser.add_argument('--cuda', default=True, type=bool, help='Use cuda to train m
 parser.add_argument('--ngpu', default=1, type=int, help='gpus')
 parser.add_argument('--depth', default=50, type=int,help='which depth of resnet')
 parser.add_argument('--res_resume', default='', type=str, metavar='PATH',help='resume pretrain resnet for retraining')
-parser.add_argument('--lr', '--learning-rate', default=1e-3, type=float, help='initial learning rate')
+parser.add_argument('--lr', '--learning-rate', default=1e-4, type=float, help='initial learning rate')
 parser.add_argument('--resume', default='', type=str, metavar='PATH',help='resume net for retraining')
 parser.add_argument('--resume_epoch', default=0, type=int, help='resume iter for retraining')
-parser.add_argument('-max', '--epoches', default=100, type=int, help='max epoch for retraining')
+parser.add_argument('-max', '--epoches', default=40, type=int, help='max epoch for retraining')
 parser.add_argument('--save_folder', default='./models/', help='Location to save checkpoint models')
 
 args = parser.parse_args()
@@ -93,11 +93,11 @@ def train(args,model,optimizer):
     batch_sum=1
     lr_dis=0
     for epoch in range(start_epoch,epoches+1):
-        if epoch<10:
-            lr_dis=args.lr*(epoch/10)
-            optimizer = optim.RMSprop(filter(lambda  p: p.requires_grad, model.parameters()), lr=lr_dis)
-        if epoch==20 or epoch %40==0:
+        if epoch==20:
             lr_dis=args.lr/10**(epoch/20)
+            optimizer = optim.RMSprop(filter(lambda  p: p.requires_grad, model.parameters()), lr=lr_dis)
+        if epoch==30:
+            lr_dis=args.lr/10**(epoch/15)
             optimizer = optim.RMSprop(filter(lambda  p: p.requires_grad, model.parameters()), lr=lr_dis)
         train_batch=1
         for sample in train_loader:
@@ -137,7 +137,7 @@ def train(args,model,optimizer):
             os.mkdir('./log')
         log = open('./log/train.txt', 'a+')
         log.write("The " + str(epoch) + "-th epoch: model accuracy is " + str(100. * correct_model/batch_sum) + ", veh accuracy is " + str(100. * correct_veh/batch_sum) +"\n")
-        if epoch % 40 == 0 or epoch==100:
+        if epoch % 10 == 0:
             saveName = args.save_folder+'model_epoch_' + str(epoch)+'.pth'
             torch.save(model.state_dict(), saveName)
 

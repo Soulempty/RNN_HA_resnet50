@@ -15,6 +15,9 @@ Evaluate(MAP,CMC): python evaluate.py --data_path /home/*/VeRi --resume ./models
 
 MAP: 63.1%    
 CMC Scores    allshots      cuhk03  market1501
+
   top-1          32.1%       61.8%       89.7%
+  
   top-5          42.7%       89.6%       95.0%
+  
   top-10         48.8%       95.8%       97.0%
